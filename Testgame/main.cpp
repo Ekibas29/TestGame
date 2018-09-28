@@ -89,7 +89,7 @@ int main()
 	float moveSpeed = 0.3f;
 	Vector2f playerCenter, mousePos, aimDir, aimDirNorm, bulStartPos;
 	std::vector<Bullet> bullets;
-	std::vector<RectangleShape> walls(1);
+	std::vector<RectangleShape> walls(5);
 	Bullet bul;
 	RectangleShape wall;
 	Clock clock, mouseClock;
@@ -119,15 +119,14 @@ int main()
 	player.setPosition(400, 300);
 	player.setOrigin(31, 46);
 
+	/******Init walls*****/
 	srand(time(NULL));
 	for (auto it = walls.begin(); it != walls.end(); it++) {
 		it->setFillColor(Color(255,255,255,0));
 		it->setOutlineColor(Color::Blue);
 		it->setOutlineThickness(1);
-		//it->setPosition(rand() % 800, rand() % 600);
-		it->setPosition(400, 300);
-		//it->setSize(Vector2f(rand() % 100 + 50, rand() % 40 + 35));
-		it->setSize(Vector2f(100, 100));
+		it->setPosition(rand() % 700, rand() % 500);
+		it->setSize(Vector2f(rand() % 100 + 50, rand() % 50 + 30));
 	}
 
 	std::vector<Vector2f> normVec(4);
@@ -206,17 +205,10 @@ int main()
 				for (int j = 0; j < walls.size(); j++) {
 					if (bound.intersects(walls[j].getGlobalBounds())) {
 						Vector2f sideOrtoVec, sideOrtoVecNorm, vel, normvel;
-						
-						normvel = bullets[i].velocity / sqrt(pow(bullets[i].velocity.x, 2) + pow(bullets[i].velocity.y, 2));
-						/*
-						std::cout << "up: "    << acos(normvel.x*normvec1.x + normvel.y*normvec1.y) * 180.0 / PI << " z: " << normvel.x*normvec1.y - normvel.y*normvec1.x << std::endl;
-						std::cout << "left: "  << acos(normvel.x*normvec2.x + normvel.y*normvec2.y) * 180.0 / PI << " z: " << normvel.x*normvec2.y - normvel.y*normvec2.x << std::endl;
-						std::cout << "bot: "   << acos(normvel.x*normvec3.x + normvel.y*normvec3.y) * 180.0 / PI << " z: " << normvel.x*normvec3.y - normvel.y*normvec3.x << std::endl;
-						std::cout << "right: " << acos(normvel.x*normvec4.x + normvel.y*normvec4.y) * 180.0 / PI << " z: " << normvel.x*normvec4.y - normvel.y*normvec4.x << std::endl;
-						
-						std::cout << "#################\n";
-						*/
 						float angle, tmp;
+
+						normvel = bullets[i].velocity / sqrt(pow(bullets[i].velocity.x, 2) + pow(bullets[i].velocity.y, 2));
+						
 						for (int k = 0; k < normVec.size(); k++) {
 							angle = acos(normvel.x*normVec[k].x + normvel.y*normVec[k].y) * todeg;
 							if (0 <= angle || angle <= 90) {
@@ -234,7 +226,6 @@ int main()
 									break;
 								}
 							}
-
 						}
 						break;
 					}
@@ -275,101 +266,3 @@ int main()
 
 	return 0;
 }
-
-/*
-ππππππππππππππππππππ
-”ÎÛ˜¯ÂÌÌ‡ˇ ÌÓ Ò ·‡„‡ÏË ‚ Û„Î‡ı
-for (int i = 0; i < bullets.size(); i++) {
-			Vector2f prevBulPos = bullets[i].shape.getPosition();
-			bullets[i].move(bullets[i].velocity);
-
-			Vector2f currBulPos = bullets[i].shape.getPosition();
-			if (currBulPos.x < 0 || currBulPos.y < 0 || currBulPos.x > window.getSize().x || currBulPos.y > window.getSize().y) {
-				bullets.erase(bullets.begin() + i);
-			}
-			else {
-				FloatRect bound;
-				bound = bullets[i].shape.getGlobalBounds();
-				for (int j = 0; j < walls.size(); j++) {
-					if (bound.intersects(walls[j].getGlobalBounds())) {
-						Vector2f sideVec, sideOrtoVec, vel, sideOrtoVecNorm;
-						float tmp;
-						if (prevBulPos.x > walls[j].getPosition().x)
-							if (prevBulPos.y > walls[j].getPosition().y)
-								if (prevBulPos.x > walls[j].getPosition().x + walls[j].getSize().x)
-									sideVec = Vector2f(0, walls[j].getSize().y);
-								else
-									sideVec = Vector2f(walls[j].getSize().x, 0);
-							else
-								sideVec = Vector2f(walls[j].getSize().x, 0);
-						else
-							sideVec = Vector2f(0, walls[j].getSize().y);
-
-						sideOrtoVec.x = sideVec.y;
-						sideOrtoVec.y = -sideVec.x;
-
-						sideOrtoVecNorm = sideOrtoVec / sqrt(pow(sideOrtoVec.x, 2) + pow(sideOrtoVec.y, 2));
-						tmp = bullets[i].velocity.x * sideOrtoVecNorm.x + bullets[i].velocity.y * sideOrtoVecNorm.y;
-
-						vel = bullets[i].velocity - sideOrtoVecNorm * 2.f * tmp;
-
-						bullets[i].velocity.x = vel.x;
-						bullets[i].velocity.y = vel.y;
-						break;
-					}
-				}
-			}
-		}
-#############################
-ŒË„ËÌ‡Î¸Ì‡ˇ Ò ·‡„‡ÏË
-for (int i = 0; i < bullets.size(); i++) {
-			bullets[i].shape.move(bullets[i].velocity);
-
-			Vector2f bulPos = bullets[i].shape.getPosition();
-			if (bulPos.x < 0 || bulPos.y < 0 || bulPos.x > window.getSize().x || bulPos.y > window.getSize().y) {
-				bullets.erase(bullets.begin() + i);
-			}
-			else {
-				FloatRect bound;
-				bound = bullets[i].shape.getGlobalBounds();
-				for (int j = 0; j < walls.size(); j++) {
-					if (bound.intersects(walls[j].getGlobalBounds())) {
-						Vector2f sideVec, sideOrtoVec, bulPos, vel, sideOrtoVecNorm;
-						float tmp;
-						bulPos = bullets[i].shape.getPosition();
-						if (bulPos.x > walls[j].getPosition().x)
-							if (bulPos.y > walls[j].getPosition().y)
-								if (bulPos.x > walls[j].getPosition().x + walls[j].getSize().x)
-									sideVec = Vector2f(0, walls[j].getSize().y);
-								else
-									sideVec = Vector2f(walls[j].getSize().x, 0);
-							else
-								sideVec = Vector2f(walls[j].getSize().x, 0);
-						else
-							sideVec = Vector2f(0, walls[j].getSize().y);
-
-						sideOrtoVec.x = sideVec.y;
-						sideOrtoVec.y = -sideVec.x;
-
-						sideOrtoVecNorm = sideOrtoVec / sqrt(pow(sideOrtoVec.x, 2) + pow(sideOrtoVec.y, 2));
-						tmp = bullets[i].velocity.x * sideOrtoVecNorm.x + bullets[i].velocity.y * sideOrtoVecNorm.y;
-
-						vel = bullets[i].velocity - sideOrtoVecNorm * 2.f * tmp;
-
-						bullets[i].velocity.x = vel.x;
-						bullets[i].velocity.y = vel.y;
-						break;
-					}
-				}
-			}
-		}
-
-		Vector2f upleft = bullets[i].shape.getPosition();
-						Vector2f upright = Vector2f(bullets[i].shape.getPosition().x + 2*bullets[i].shape.getRadius(), 
-													bullets[i].shape.getPosition().y);
-						Vector2f botleft = Vector2f(bullets[i].shape.getPosition().x,
-													bullets[i].shape.getPosition().y + 2*bullets[i].shape.getRadius());
-						Vector2f botright = Vector2f(bullets[i].shape.getPosition().x + 2*bullets[i].shape.getRadius(),
-													bullets[i].shape.getPosition().y + 2*bullets[i].shape.getRadius());
-		
-		*/
