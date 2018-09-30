@@ -3,6 +3,9 @@
 #include <cmath>
 #include <vector>
 #include <string>
+#include "Bullet.h"
+#include "Player.h"
+#include "Wall.h"
 
 using namespace sf;
 const float PI = 3.14159265f;
@@ -18,80 +21,14 @@ void printMatrix(const float* ptr) {
 	}
 }
 
-bool interSec(Vector2f start1, Vector2f end1, Vector2f start2, Vector2f end2)
-{
-	Vector2f dir1 = end1 - start1;
-	Vector2f dir2 = end2 - start2;
-
-	//считаем уравнения прямых проходящих через отрезки
-	float a1 = -dir1.y;
-	float b1 = +dir1.x;
-	float d1 = -(a1*start1.x + b1 * start1.y);
-
-	float a2 = -dir2.y;
-	float b2 = +dir2.x;
-	float d2 = -(a2*start2.x + b2 * start2.y);
-
-	//подставляем концы отрезков, для выяснения в каких полуплоскотях они
-	float seg1_line2_start = a2 * start1.x + b2 * start1.y + d2;
-	float seg1_line2_end = a2 * end1.x + b2 * end1.y + d2;
-
-	float seg2_line1_start = a1 * start2.x + b1 * start2.y + d1;
-	float seg2_line1_end = a1 * end2.x + b1 * end2.y + d1;
-
-	//если концы одного отрезка имеют один знак, значит он в одной полуплоскости и пересечения нет.
-	if (seg1_line2_start * seg1_line2_end >= 0 || seg2_line1_start * seg2_line1_end >= 0)
-		return false;
-
-	return true;
-}
-
-class Bullet
-{
-public:
-	float speed;
-	Vector2f velocity;
-	CircleShape shape;
-	RectangleShape rect;
-	FloatRect center;
-	
-	Bullet(): speed(0.6f), velocity(0,0)
-	{
-		shape.setFillColor(Color::Black);
-		shape.setRadius(2.5f);
-
-		rect.setSize(Vector2f(shape.getGlobalBounds().width, shape.getGlobalBounds().height));
-		rect.setFillColor(Color(255, 255, 255, 0));
-		rect.setOutlineColor(Color::Red);
-		rect.setOutlineThickness(1);
-		center.height = 1.f;
-		center.width = 1.f;
-	}
-
-	void setPosition(float x, float y) {
-		shape.setPosition(x, y);
-		rect.setPosition(shape.getGlobalBounds().left, shape.getGlobalBounds().top);
-		center.left = shape.getPosition().x + shape.getRadius();
-		center.top = shape.getPosition().y + shape.getRadius();
-	}
-
-	void move(Vector2f vel) {
-		shape.move(vel);
-		rect.move(vel);
-		center.left = shape.getPosition().x + shape.getRadius();
-		center.top = shape.getPosition().y + shape.getRadius();
-	}
-};
-
 int main()
 {
 	bool pause = 0;
 	float moveSpeed = 0.3f;
 	Vector2f playerCenter, mousePos, aimDir, aimDirNorm, bulStartPos;
 	std::vector<Bullet> bullets;
-	std::vector<RectangleShape> walls(5);
+	std::vector<Wall> walls(5);
 	Bullet bul;
-	RectangleShape wall;
 	Clock clock, mouseClock;
 	Text fps;
 	Font font;
@@ -111,20 +48,13 @@ int main()
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
 
 	Texture herotext;
-	herotext.loadFromImage(hero);
-	
-	Sprite player;
-	player.setTexture(herotext);
-	player.setTextureRect(IntRect(0,18,62,92));
-	player.setPosition(400, 300);
-	player.setOrigin(31, 46);
+	herotext.loadFromImage(hero, sf::IntRect(0, 18, 62, 92));
+	Player player(herotext);
 
 	/******Init walls*****/
 	srand(time(NULL));
 	for (auto it = walls.begin(); it != walls.end(); it++) {
-		it->setFillColor(Color(255,255,255,0));
-		it->setOutlineColor(Color::Blue);
-		it->setOutlineThickness(1);
+		it->setFillColor(Color::Blue);
 		it->setPosition(rand() % 700, rand() % 500);
 		it->setSize(Vector2f(rand() % 100 + 50, rand() % 50 + 30));
 	}
@@ -160,7 +90,7 @@ int main()
 		if (pause) continue;
 		
 		/*****Поворот персонажа в сторону курсора*****/
-		playerCenter = Vector2f(player.getPosition());
+		playerCenter = player.getPosition();
 		bulStartPos = Vector2f(playerCenter.x, playerCenter.y - 46);
 		mousePos = Vector2f(Mouse::getPosition(window));
 		aimDir = mousePos - playerCenter;
@@ -193,33 +123,29 @@ int main()
 		/******Движение и коллизия пуль******/
 		for (int i = 0; i < bullets.size(); i++) {
 			Vector2f prevBulPos = Vector2f(bullets[i].center.left, bullets[i].center.top);
-			bullets[i].move(bullets[i].velocity);
+			bullets[i].move();
 
 			Vector2f currBulPos = Vector2f(bullets[i].center.left, bullets[i].center.top);
 			if (currBulPos.x < 0 || currBulPos.y < 0 || currBulPos.x > window.getSize().x || currBulPos.y > window.getSize().y) {
 				bullets.erase(bullets.begin() + i);
 			}
 			else {
-				FloatRect bound;
-				bound = bullets[i].center;
 				for (int j = 0; j < walls.size(); j++) {
-					if (bound.intersects(walls[j].getGlobalBounds())) {
+					if (bullets[i].center.intersects(walls[j].getGlobalBounds())) {
 						Vector2f sideOrtoVec, sideOrtoVecNorm, vel, normvel;
 						float angle, tmp;
-
 						normvel = bullets[i].velocity / sqrt(pow(bullets[i].velocity.x, 2) + pow(bullets[i].velocity.y, 2));
 						
 						for (int k = 0; k < normVec.size(); k++) {
 							angle = acos(normvel.x*normVec[k].x + normvel.y*normVec[k].y) * todeg;
 							if (0 <= angle || angle <= 90) {
 								tmp = bullets[i].velocity.x * normVec[k].x + bullets[i].velocity.y * normVec[k].y;
-
 								vel = bullets[i].velocity - normVec[k] * 2.f * tmp;
 
 								bul = bullets[i];
 								bul.velocity.x = vel.x;
 								bul.velocity.y = vel.y;
-								bul.move(bul.velocity);
+								bul.move();
 								if (!bul.center.intersects(walls[j].getGlobalBounds())) {
 									bullets[i].velocity.x = vel.x;
 									bullets[i].velocity.y = vel.y;
@@ -232,6 +158,8 @@ int main()
 				}
 			}
 		}
+
+
 
 		/******Движение персонажа******/
 		if (Keyboard::isKeyPressed(Keyboard::A)) {
@@ -252,14 +180,15 @@ int main()
 		
 		for (int i = 0; i < bullets.size(); i++) {
 			window.draw(bullets[i].shape);
-			window.draw(bullets[i].rect);
+			//window.draw(bullets[i].rect);
 		}
 
 		for (int i = 0; i < walls.size(); i++)
 			window.draw(walls[i]);
 
 		//window.draw(rect);
-		window.draw(player);
+		Entity& ptr = player;
+		ptr.draw(window);
 		window.draw(fps);
 		window.display();
 	}
