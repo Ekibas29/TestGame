@@ -11,6 +11,7 @@ using namespace sf;
 const float PI = 3.14159265f;
 const float delay = 0.1f;
 const float todeg = 180.0 / PI;
+const int wallsNumber = 5;
 
 void printMatrix(const float* ptr) {
 	for (int i = 0; i < 4; i++) {
@@ -27,7 +28,7 @@ int main()
 	float moveSpeed = 0.3f;
 	Vector2f playerCenter, mousePos, aimDir, aimDirNorm, bulStartPos;
 	std::vector<Bullet> bullets;
-	std::vector<Wall> walls(5);
+	std::vector<Wall> walls;
 	Bullet bul;
 	Clock clock, mouseClock;
 	Text fps;
@@ -53,10 +54,17 @@ int main()
 
 	/******Init walls*****/
 	srand(time(NULL));
-	for (auto it = walls.begin(); it != walls.end(); it++) {
-		it->setFillColor(Color::Blue);
-		it->setPosition(rand() % 700, rand() % 500);
-		it->setSize(Vector2f(rand() % 100 + 50, rand() % 50 + 30));
+	std::vector<Wall>::const_iterator it;
+	for (int i = 0; i < wallsNumber; i++) {
+		Wall wall(rand() % 700, rand() % 500, rand() % 100 + 50, rand() % 50 + 30);
+		for (it = walls.begin(); it != walls.end(); it++) {
+			if (wall.getGlobalBounds().intersects(it->getGlobalBounds())) {
+				i--;
+				break;
+			}
+		}
+		if (it == walls.end())
+			walls.push_back(wall);
 	}
 
 	std::vector<Vector2f> normVec(4);
@@ -91,13 +99,14 @@ int main()
 		
 		/*****Поворот персонажа в сторону курсора*****/
 		playerCenter = player.getPosition();
-		bulStartPos = Vector2f(playerCenter.x, playerCenter.y - 46);
+		bulStartPos = Vector2f(playerCenter.x, playerCenter.y - 46*0.5f);
 		mousePos = Vector2f(Mouse::getPosition(window));
 		aimDir = mousePos - playerCenter;
 		aimDirNorm = aimDir / sqrt(pow(aimDir.x, 2) + pow(aimDir.y, 2));
 
 		float deg = atan2(aimDirNorm.y, aimDirNorm.x) * 180 / PI + 90;
 		player.setRotation(deg);
+		float deg1 = deg;
 
 		deg = (deg + 30) * PI / 180;
 		bulStartPos = Vector2f(playerCenter.x + (bulStartPos.x - playerCenter.x)*std::cos(deg) - (bulStartPos.y - playerCenter.y) * std::sin(deg),
@@ -116,7 +125,6 @@ int main()
 			mouseClock.restart();
 			bul.setPosition(bulStartPos.x-2.5f, bulStartPos.y-2.5f);
 			bul.velocity = bul.speed * time * aimDirNorm;
-
 			bullets.push_back(bul);
 		}
 
@@ -159,8 +167,6 @@ int main()
 			}
 		}
 
-
-
 		/******Движение персонажа******/
 		if (Keyboard::isKeyPressed(Keyboard::A)) {
 			player.move(-moveSpeed*time, 0);
@@ -175,6 +181,38 @@ int main()
 			player.move(0, moveSpeed*time);
 		}
 
+		Vector2f playerUpLeftPos, playerBotRightPos;
+		playerUpLeftPos = Vector2f(player.getGlobalBounds().left, player.getGlobalBounds().top);
+		playerBotRightPos = Vector2f(player.getGlobalBounds().left + player.getGlobalBounds().width,
+									 player.getGlobalBounds().top + player.getGlobalBounds().height);
+
+		for (int j = 0; j < walls.size(); j++) {
+			if (player.getGlobalBounds().intersects(walls[j].getGlobalBounds())) {
+				if (Keyboard::isKeyPressed(Keyboard::A)) {
+					player.move(moveSpeed * time, 0);
+				}
+				if (Keyboard::isKeyPressed(Keyboard::D)) {
+					player.move(-moveSpeed*time, 0);
+				}
+				if (Keyboard::isKeyPressed(Keyboard::W)) {
+					player.move(0, moveSpeed * time);
+				}
+				if(Keyboard::isKeyPressed(Keyboard::S)) {
+					player.move(0, -moveSpeed*time);
+				}
+			}
+		}
+
+		if (playerUpLeftPos.x < 0)
+			player.setPosition(player.getPosition().x + -playerUpLeftPos.x, player.getPosition().y);
+		if (playerUpLeftPos.y < 0)
+			player.setPosition(player.getPosition().x, player.getPosition().y + -playerUpLeftPos.y);
+		if (playerBotRightPos.x > window.getSize().x)
+			player.setPosition(player.getPosition().x - (playerBotRightPos.x - window.getSize().x), player.getPosition().y);
+		if (playerBotRightPos.y > window.getSize().y)
+			player.setPosition(player.getPosition().x, player.getPosition().y - (playerBotRightPos.y - window.getSize().y));
+
+
 		/******Вывод объектов на экран******/
 		window.clear(Color(255, 255,255));
 		
@@ -187,8 +225,7 @@ int main()
 			window.draw(walls[i]);
 
 		//window.draw(rect);
-		Entity& ptr = player;
-		ptr.draw(window);
+		player.draw(window);
 		window.draw(fps);
 		window.display();
 	}
