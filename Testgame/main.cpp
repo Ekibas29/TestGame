@@ -49,7 +49,7 @@ int main()
 	window.setIcon(icon.getSize().x, icon.getSize().y, icon.getPixelsPtr());
 
 	Texture herotext;
-	herotext.loadFromImage(hero, sf::IntRect(0, 18, 62, 92));
+	herotext.loadFromImage(hero, sf::IntRect(91, 18, 62, 87));
 	Player player(herotext);
 
 	/******Init walls*****/
@@ -97,38 +97,42 @@ int main()
 
 		if (pause) continue;
 		
-		/*****Поворот персонажа в сторону курсора*****/
+		/*****Player rotation*****/
 		playerCenter = player.getPosition();
-		bulStartPos = Vector2f(playerCenter.x, playerCenter.y - 46*0.5f);
+		bulStartPos = Vector2f(playerCenter.x, playerCenter.y - 55);
 		mousePos = Vector2f(Mouse::getPosition(window));
 		aimDir = mousePos - playerCenter;
 		aimDirNorm = aimDir / sqrt(pow(aimDir.x, 2) + pow(aimDir.y, 2));
 
 		float deg = atan2(aimDirNorm.y, aimDirNorm.x) * 180 / PI + 90;
 		player.setRotation(deg);
-		float deg1 = deg;
 
 		deg = (deg + 30) * PI / 180;
 		bulStartPos = Vector2f(playerCenter.x + (bulStartPos.x - playerCenter.x)*std::cos(deg) - (bulStartPos.y - playerCenter.y) * std::sin(deg),
 			playerCenter.y + (bulStartPos.x - playerCenter.x) * std::sin(deg) + (bulStartPos.y - playerCenter.y) * std::cos(deg));
 
-		/****Отображение границ персонажа****/
-		FloatRect frect =  player.getGlobalBounds();
+		/****Display player bounds****/
+		FloatRect frect =  player.getBox();
 		RectangleShape rect(Vector2f(frect.width, frect.height));
 		rect.setFillColor(Color(255,255,255,0));
 		rect.setPosition(frect.left, frect.top);
 		rect.setOutlineColor(Color::Red);
 		rect.setOutlineThickness(1);
 
-		/******Стрельба******/
+		/******Shooting******/
 		if (Mouse::isButtonPressed(Mouse::Left) && mouseClock.getElapsedTime().asSeconds() > delay) {
 			mouseClock.restart();
 			bul.setPosition(bulStartPos.x-2.5f, bulStartPos.y-2.5f);
 			bul.velocity = bul.speed * time * aimDirNorm;
-			bullets.push_back(bul);
+			for (int j = 0; j < walls.size(); j++) {
+				if (bul.center.intersects(walls[j].getGlobalBounds()))
+					break;
+				else if(j == walls.size() - 1)
+					bullets.push_back(bul);
+			}
 		}
 
-		/******Движение и коллизия пуль******/
+		/******Bullets movement and collision******/
 		for (int i = 0; i < bullets.size(); i++) {
 			Vector2f prevBulPos = Vector2f(bullets[i].center.left, bullets[i].center.top);
 			bullets[i].move();
@@ -167,7 +171,7 @@ int main()
 			}
 		}
 
-		/******Движение персонажа******/
+		/******Player movement******/
 		if (Keyboard::isKeyPressed(Keyboard::A)) {
 			player.move(-moveSpeed*time, 0);
 		}
@@ -181,13 +185,8 @@ int main()
 			player.move(0, moveSpeed*time);
 		}
 
-		Vector2f playerUpLeftPos, playerBotRightPos;
-		playerUpLeftPos = Vector2f(player.getGlobalBounds().left, player.getGlobalBounds().top);
-		playerBotRightPos = Vector2f(player.getGlobalBounds().left + player.getGlobalBounds().width,
-									 player.getGlobalBounds().top + player.getGlobalBounds().height);
-
 		for (int j = 0; j < walls.size(); j++) {
-			if (player.getGlobalBounds().intersects(walls[j].getGlobalBounds())) {
+			if (player.getBox().intersects(walls[j].getGlobalBounds())) {
 				if (Keyboard::isKeyPressed(Keyboard::A)) {
 					player.move(moveSpeed * time, 0);
 				}
@@ -203,6 +202,11 @@ int main()
 			}
 		}
 
+		Vector2f playerUpLeftPos, playerBotRightPos;
+		playerUpLeftPos = Vector2f(player.getBox().left, player.getBox().top);
+		playerBotRightPos = Vector2f(player.getBox().left + player.getBox().width,
+			player.getBox().top + player.getBox().height);
+
 		if (playerUpLeftPos.x < 0)
 			player.setPosition(player.getPosition().x + -playerUpLeftPos.x, player.getPosition().y);
 		if (playerUpLeftPos.y < 0)
@@ -213,7 +217,7 @@ int main()
 			player.setPosition(player.getPosition().x, player.getPosition().y - (playerBotRightPos.y - window.getSize().y));
 
 
-		/******Вывод объектов на экран******/
+		/******Display objects on screen******/
 		window.clear(Color(255, 255,255));
 		
 		for (int i = 0; i < bullets.size(); i++) {
@@ -224,9 +228,10 @@ int main()
 		for (int i = 0; i < walls.size(); i++)
 			window.draw(walls[i]);
 
-		//window.draw(rect);
+		window.draw(rect);
 		player.draw(window);
 		window.draw(fps);
+		
 		window.display();
 	}
 
