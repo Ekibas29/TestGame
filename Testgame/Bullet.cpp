@@ -1,6 +1,6 @@
 #include "Bullet.h"
 
-Bullet::Bullet() : speed(0.6f), velocity(0, 0) {
+Bullet::Bullet() : speed(10.f), velocity(0, 0) {
 	shape.setFillColor(sf::Color::Black);
 	shape.setRadius(2.5f);
 

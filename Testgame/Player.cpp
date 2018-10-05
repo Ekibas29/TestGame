@@ -15,8 +15,8 @@ void Player::draw(sf::RenderWindow& win) {
 	win.draw(*this);
 }
 
-void Player::move(float x, float y) {
-	Sprite::move(x, y);
+void Player::move() {
+	Sprite::move(velocity);
 	collisionBox.left = getPosition().x - 21;
 	collisionBox.top = getPosition().y - 20;
 }
@@ -25,6 +25,11 @@ void Player::setPosition(float x, float y) {
 	Sprite::setPosition(x, y);
 	collisionBox.left = getPosition().x - 21;
 	collisionBox.top = getPosition().y - 20;
+}
+
+void Player::resetVelocity() {
+	velocity.x = 0; 
+	velocity.y = 0;
 }
 
 sf::FloatRect Player::getBox() {

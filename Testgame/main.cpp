@@ -22,6 +22,14 @@ void printMatrix(const float* ptr) {
 	}
 }
 
+float getAngle(Vector2f v1, Vector2f v2) {
+	Vector2f v1Norm, v2Norm;
+	v1Norm = v1 / sqrt(pow(v1.x, 2) + pow(v1.y, 2));
+	v2Norm = v2 / sqrt(pow(v2.x, 2) + pow(v2.y, 2));
+
+	return acos(v1Norm.x * v2Norm.x + v1Norm.y * v2Norm.y) * todeg;
+}
+
 int main()
 {
 	bool pause = 0;
@@ -63,7 +71,7 @@ int main()
 				break;
 			}
 		}
-		if (it == walls.end())
+		if (it == walls.end() && !wall.getGlobalBounds().intersects(player.getBox()))
 			walls.push_back(wall);
 	}
 
@@ -92,7 +100,25 @@ int main()
 			if (event.type == sf::Event::KeyPressed)
 				if (event.key.code == sf::Keyboard::Escape)
 					if(pause) pause = 0;
-					else pause = 1;
+					else {
+						pause = 1;
+						fps.setString("PAUSE");
+						window.clear(Color(255, 255, 255));
+
+						for (int i = 0; i < bullets.size(); i++) {
+							window.draw(bullets[i].shape);
+							//window.draw(bullets[i].rect);
+						}
+
+						for (int i = 0; i < walls.size(); i++)
+							window.draw(walls[i]);
+
+						//window.draw(rect);
+						player.draw(window);
+						window.draw(fps);
+
+						window.display();
+					}
 		}
 
 		if (pause) continue;
@@ -111,6 +137,12 @@ int main()
 		bulStartPos = Vector2f(playerCenter.x + (bulStartPos.x - playerCenter.x)*std::cos(deg) - (bulStartPos.y - playerCenter.y) * std::sin(deg),
 			playerCenter.y + (bulStartPos.x - playerCenter.x) * std::sin(deg) + (bulStartPos.y - playerCenter.y) * std::cos(deg));
 
+		/*Vector2f aimPosDir = mousePos - bulStartPos;
+		Vector2f aimPosDirNorm = aimPosDir / sqrt(pow(aimPosDir.x, 2) + pow(aimPosDir.y, 2));
+		player.setRotation(atan2(aimPosDirNorm.y, aimPosDirNorm.x) * 180 / PI);
+		std::cout << "Angle: " << getAngle(aimDir, mousePos - bulStartPos) << std::endl;
+		*/
+
 		/****Display player bounds****/
 		FloatRect frect =  player.getBox();
 		RectangleShape rect(Vector2f(frect.width, frect.height));
@@ -123,7 +155,7 @@ int main()
 		if (Mouse::isButtonPressed(Mouse::Left) && mouseClock.getElapsedTime().asSeconds() > delay) {
 			mouseClock.restart();
 			bul.setPosition(bulStartPos.x-2.5f, bulStartPos.y-2.5f);
-			bul.velocity = bul.speed * time * aimDirNorm;
+			bul.velocity = bul.speed * aimDirNorm;
 			for (int j = 0; j < walls.size(); j++) {
 				if (bul.center.intersects(walls[j].getGlobalBounds()))
 					break;
@@ -172,33 +204,41 @@ int main()
 		}
 
 		/******Player movement******/
+		player.resetVelocity();
 		if (Keyboard::isKeyPressed(Keyboard::A)) {
-			player.move(-moveSpeed*time, 0);
+			player.velocity.x = player.velocity.x - moveSpeed*time;
 		}
 		if (Keyboard::isKeyPressed(Keyboard::D)) {
-			player.move(moveSpeed*time, 0);
+			player.velocity.x = player.velocity.x + moveSpeed * time;
 		}
 		if (Keyboard::isKeyPressed(Keyboard::W)) {
-			player.move(0, -moveSpeed*time);
+			player.velocity.y = player.velocity.y - moveSpeed*time;
 		}
 		if (Keyboard::isKeyPressed(Keyboard::S)) {
-			player.move(0, moveSpeed*time);
+			player.velocity.y = player.velocity.y + moveSpeed * time;
 		}
+
+		if (player.velocity.x && player.velocity.y) {
+			player.velocity *= 0.707106f;
+		}
+		player.move();
+		//std::cout << sqrt(pow(player.velocity.x, 2) + pow(player.velocity.y, 2)) << std::endl;
 
 		for (int j = 0; j < walls.size(); j++) {
 			if (player.getBox().intersects(walls[j].getGlobalBounds())) {
 				if (Keyboard::isKeyPressed(Keyboard::A)) {
-					player.move(moveSpeed * time, 0);
+					player.velocity.x = player.velocity.x + (-2)*player.velocity.x;
 				}
 				if (Keyboard::isKeyPressed(Keyboard::D)) {
-					player.move(-moveSpeed*time, 0);
+					player.velocity.x = player.velocity.x - 2*player.velocity.x;
 				}
 				if (Keyboard::isKeyPressed(Keyboard::W)) {
-					player.move(0, moveSpeed * time);
+					player.velocity.y = player.velocity.y + (-2)*player.velocity.y;
 				}
 				if(Keyboard::isKeyPressed(Keyboard::S)) {
-					player.move(0, -moveSpeed*time);
+					player.velocity.y = player.velocity.y - 2*player.velocity.y;
 				}
+				player.move();
 			}
 		}
 
@@ -228,7 +268,7 @@ int main()
 		for (int i = 0; i < walls.size(); i++)
 			window.draw(walls[i]);
 
-		window.draw(rect);
+		//window.draw(rect);
 		player.draw(window);
 		window.draw(fps);
 		

@@ -10,7 +10,7 @@ public:
 
 	void draw(sf::RenderWindow& win);
 	sf::FloatRect getBox();
-	void move(float x, float y);
+	void move();
 	void setPosition(float x, float y);
-
+	void resetVelocity();
 };
