@@ -1,6 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 
+const float PI = 3.14159265f;
+
 class Entity {
 public:
 	float speed;

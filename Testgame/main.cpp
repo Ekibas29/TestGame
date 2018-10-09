@@ -6,9 +6,9 @@
 #include "Bullet.h"
 #include "Player.h"
 #include "Wall.h"
+#include "Enemy.h"
 
 using namespace sf;
-const float PI = 3.14159265f;
 const float delay = 0.1f;
 const float todeg = 180.0 / PI;
 const int wallsNumber = 5;
@@ -59,7 +59,10 @@ int main()
 	Texture herotext;
 	herotext.loadFromImage(hero, sf::IntRect(91, 18, 62, 87));
 	Player player(herotext);
+	Enemy enemy(herotext);
 
+
+	std::cout << enemy.getRotation() << std::endl;
 	/******Init walls*****/
 	srand(time(NULL));
 	std::vector<Wall>::const_iterator it;
@@ -71,7 +74,8 @@ int main()
 				break;
 			}
 		}
-		if (it == walls.end() && !wall.getGlobalBounds().intersects(player.getBox()))
+		if (it == walls.end() && !wall.getGlobalBounds().intersects(player.getBox()) 
+			&& !wall.getGlobalBounds().intersects(enemy.getBox()))
 			walls.push_back(wall);
 	}
 
@@ -80,6 +84,15 @@ int main()
 	normVec[1] = Vector2f(1, 0);
 	normVec[2] = Vector2f(0, -1);
 	normVec[3] = Vector2f(-1, 0);
+
+	/*
+	sf::ConvexShape convex;
+	convex.setPointCount(3);
+	convex.setFillColor(Color::Red);
+	convex.setPoint(0, sf::Vector2f(500, 250));
+	convex.setPoint(1, sf::Vector2f(600, 350));
+	convex.setPoint(2, sf::Vector2f(400, 350));
+	*/
 
 	while (window.isOpen())
 	{
@@ -112,7 +125,7 @@ int main()
 
 						for (int i = 0; i < walls.size(); i++)
 							window.draw(walls[i]);
-
+						enemy.RayCasting(window);
 						//window.draw(rect);
 						player.draw(window);
 						window.draw(fps);
@@ -132,6 +145,9 @@ int main()
 
 		float deg = atan2(aimDirNorm.y, aimDirNorm.x) * 180 / PI + 90;
 		player.setRotation(deg);
+		enemy.setRotation(deg);
+
+		std::cout << enemy.getRotation() << std::endl;
 
 		deg = (deg + 30) * PI / 180;
 		bulStartPos = Vector2f(playerCenter.x + (bulStartPos.x - playerCenter.x)*std::cos(deg) - (bulStartPos.y - playerCenter.y) * std::sin(deg),
@@ -256,10 +272,11 @@ int main()
 		if (playerBotRightPos.y > window.getSize().y)
 			player.setPosition(player.getPosition().x, player.getPosition().y - (playerBotRightPos.y - window.getSize().y));
 
-
 		/******Display objects on screen******/
 		window.clear(Color(255, 255,255));
 		
+		enemy.RayCasting(window);
+
 		for (int i = 0; i < bullets.size(); i++) {
 			window.draw(bullets[i].shape);
 			//window.draw(bullets[i].rect);
@@ -270,8 +287,10 @@ int main()
 
 		//window.draw(rect);
 		player.draw(window);
+		enemy.draw(window);
 		window.draw(fps);
-		
+		//window.draw(convex);
+
 		window.display();
 	}
 
